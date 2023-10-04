@@ -1,0 +1,66 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <mpi.h>
+
+#define MAX_COMMENT_LENGTH 100
+
+// Function to analyze the sentiment of a comment
+int analyzeSentiment(const char* comment) {
+    // Simplified sentiment analysis - you would typically use a more sophisticated approach
+    if (strstr(comment, "happy") || strstr(comment, "good") || strstr(comment,"great") {
+        return 1; // Positive sentiment
+    } else if (strstr(comment, "sad") || strstr(comment, "bad") || strstr(comment,"terrible") {
+        return -1; // Negative sentiment
+    } else {
+        return 0; // Neutral sentiment
+    }
+}
+
+int main(int argc, char** argv) {
+    int rank, size;
+    char comments[][MAX_COMMENT_LENGTH] = {
+        "I'm feeling happy today!",
+        "This is a great product.",
+        "I'm so sad about this news.",
+        "The customer service was terrible.",
+        "It's a good day."
+        "The product is Ok."
+    };
+
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    int localPositiveCount = 0;
+    int localNegativeCount = 0;
+
+    // Calculate the number of comments to process per process
+    int commentsPerProcess = sizeof(comments) / sizeof(comments[0]) / size;
+    int startIndex = rank * commentsPerProcess;
+    int endIndex = (rank + 1) * commentsPerProcess;
+
+    for (int i = startIndex; i < endIndex; i++) {
+        int sentiment = analyzeSentiment(comments[i]);
+        if (sentiment > 0) {
+            localPositiveCount++;
+        } else if (sentiment < 0) {
+            localNegativeCount++;
+        }
+    }
+
+    int globalPositiveCount = 0;
+    int globalNegativeCount = 0;
+
+    // Sum the local counts globally
+    MPI_Reduce(&localPositiveCount, &globalPositiveCount, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&localNegativeCount, &globalNegativeCount, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+        printf("Total positive comments: %d\n", globalPositiveCount);
+        printf("Total negative comments: %d\n", globalNegativeCount);
+    }
+
+    MPI_Finalize();
+    return 0;
+}
